@@ -1,0 +1,30 @@
+<!-- fragments/annotator-navbar.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head></head>
+<body>
+<div th:fragment="navbar">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" th:href="@{/}">Admin Panel</a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/annotator/taskList}">My Tasks</a>
+                    </li>
+                </ul>
+                <span class="navbar-text text-white me-3">Welcome, <span th:text="${#authentication.name}"></span></span>
+                <form th:action="@{/logout}" method="post" style="display:inline;">
+    <button type="submit" class="btn btn-outline-danger btn-sm">🚪 Logout</button>
+</form>
+                
+            </div>
+        </div>
+    </nav>
+</div>
+</body>
+</html>

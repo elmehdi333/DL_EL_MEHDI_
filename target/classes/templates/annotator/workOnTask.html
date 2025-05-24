@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Annotate Task</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body>
+<!-- Include navbar -->
+<div th:replace="fragments/annotator-navbar :: navbar"></div>
+
+<div class="container mt-4">
+    <h2>Annotate Task</h2>
+
+    
+
+    <form th:action="@{'/annotator/tasks/' + ${annotation.id}}" method="post" class="mb-4">
+        
+        <!-- Text 1 -->
+        <div class="mb-3">
+            <label class="form-label"><strong>Text1:</strong></label>
+            <p th:text="${annotation.text1}" class="border p-2 bg-light"></p>
+        </div>
+
+        <!-- Text 2 -->
+        <div class="mb-3">
+            <label class="form-label"><strong>Text2:</strong></label>
+            <p th:text="${annotation.text2}" class="border p-2 bg-light"></p>
+        </div>
+
+        <!-- Status Selection -->
+        <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select id="status" name="status" class="form-select" onchange="toggleProgressField()"
+                    th:disabled="${annotation.progressPercentage == 100}">
+                <option value="unlabeled" th:selected="${annotation.status == 'unlabeled'}">Unlabeled</option>
+                <option value="in-progress" th:selected="${annotation.status == 'in-progress'}">In-Progress</option>
+                <option value="labeled" th:selected="${annotation.status == 'labeled'}">Labeled</option>
+            </select>
+        </div>
+
+        <!-- Progress Field -->
+        <div class="mb-3" id="progress-group">
+            <label for="progressPercentage" class="form-label">Progress (%)</label>
+            <input type="number" id="progressPercentage" name="progressPercentage"
+                   class="form-control"
+                   min="0" max="100" step="1"
+                   th:value="${annotation.progressPercentage}"
+                   th:disabled="${annotation.progressPercentage == 100 or annotation.status != 'in-progress'}">
+        </div>
+
+        <!-- Similarity Radio -->
+        <div class="mb-3">
+            <label class="form-label">Are the two texts similar?</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="similar" value="true"
+                       th:checked="${annotation.similar == true}" th:disabled="${annotation.progressPercentage == 100}">
+                <label class="form-check-label">Yes</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="similar" value="false"
+                       th:checked="${annotation.similar == false}" th:disabled="${annotation.progressPercentage == 100}">
+                <label class="form-check-label">No</label>
+            </div>
+        </div>
+<!-- ⚠️ Similarity Required Warning -->
+    <div th:if="${param.error} == 'similarity_required'" class="alert alert-warning">
+        Please select whether the texts are similar before marking as "Labeled".
+    </div>
+    <div th:if="${param.error} == 'deadline'" class="alert alert-danger">
+    You cannot annotate this task. The deadline has passed.
+</div>
+    
+        <!-- Optional Annotation Input -->
+        <div class="mb-3">
+            <label for="value" class="form-label">Annotation Comment (optional)</label>
+            <input type="text" id="value" name="value"
+                   class="form-control"
+                   th:value="${annotation.annotationValue}"
+                   th:disabled="${annotation.progressPercentage == 100}">
+        </div>
+
+        <!-- Hidden fallback -->
+        <input type="hidden" name="value" th:if="${annotation.annotationValue == null}" value="">
+
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-success"
+                th:disabled="${annotation.progressPercentage == 100}">Submit</button>
+
+        <!-- Navigation Links -->
+        <div class="mt-3 d-flex justify-content-between">
+            <a th:if="${previousId != null}" th:href="@{'/annotator/tasks/' + ${previousId}}" class="btn btn-outline-primary">&larr; Previous</a>
+            <a th:if="${nextId != null}" th:href="@{'/annotator/tasks/' + ${nextId}}" class="btn btn-outline-primary ms-auto">Next &rarr;</a>
+            <a th:if="${nextId == null}" th:href="@{/annotator/tasks}" class="btn btn-outline-secondary ms-auto">Back to Tasks List</a>
+        </div>
+    </form>
+</div>
+
+<!-- JavaScript -->
+<script>
+    function toggleProgressField() {
+        const status = document.getElementById("status").value;
+        const progressInput = document.getElementById("progressPercentage");
+
+        if (status === "labeled") {
+            progressInput.value = 100;
+            progressInput.disabled = true;
+        } else if (status === "unlabeled") {
+            progressInput.value = 0;
+            progressInput.disabled = true;
+        } else {
+            progressInput.disabled = false;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", toggleProgressField);
+</script>
+
+</body>
+</html>

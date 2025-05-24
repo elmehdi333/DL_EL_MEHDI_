@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dataset Details</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body>
+<div th:replace="~{fragments/admin-navbar :: navbar}"></div>
+
+<div class="container mt-4">
+    <h2 th:text="${dataset.name} + ' Details'"></h2>
+    <p><strong>Description:</strong> <span th:text="${dataset.description}"></span></p>
+    <p><strong>Classes:</strong> <span th:text="${dataset.classes}"></span></p>
+    <p><strong>Created by:</strong> <span th:text="${dataset.createdBy.username}"></span></p>
+<!-- ✅ New Line to Display Deadline -->
+    <p><strong>Deadline:</strong>
+        <span th:text="${dataset.deadline != null} ? ${#temporals.format(dataset.deadline, 'yyyy-MM-dd')} : 'None'"></span>
+    </p>
+    <!-- Filters -->
+    <form method="get" th:action="@{|/admin/datasets/${dataset.id}|}" class="row mb-3">
+        <input type="hidden" name="tab" th:value="${activeTab}" />
+        <input type="hidden" name="page" th:value="${currentPage}" />
+        <input type="hidden" name="size" th:value="${annotationsPage.size}" />
+
+        <div class="col-md-2">
+            <label class="form-label">Progress</label>
+            <select name="progressFilter" class="form-select" onchange="this.form.submit()">
+                <option value="">-- All --</option>
+                <option value="0-50" th:selected="${progressFilter == '0-50'}">0–50%</option>
+                <option value="51-99" th:selected="${progressFilter == '51-99'}">51–99%</option>
+                <option value="100" th:selected="${progressFilter == '100'}">100%</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Status</label>
+            <select name="statusFilter" class="form-select" onchange="this.form.submit()">
+                <option value="">-- All --</option>
+                <option value="labeled" th:selected="${statusFilter == 'labeled'}">Labeled</option>
+                <option value="unlabeled" th:selected="${statusFilter == 'unlabeled'}">Unlabeled</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Page Size</label>
+            <select name="size" class="form-select" onchange="this.form.submit()">
+                <option value="5" th:selected="${annotationsPage.size == 5}">5</option>
+                <option value="10" th:selected="${annotationsPage.size == 10}">10</option>
+                <option value="20" th:selected="${annotationsPage.size == 20}">20</option>
+                <option value="50" th:selected="${annotationsPage.size == 50}">50</option>
+            </select>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label">Search Text</label>
+            <input type="text" name="search" th:value="${search}" class="form-control" placeholder="Search by text1 or text2" />
+        </div>
+
+        <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-outline-primary w-100">Apply</button>
+        </div>
+    </form>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mt-4" id="annotationTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link [[${activeTab} == 'labeled' ? 'active' : '']]"
+               th:href="@{|/admin/datasets/${dataset.id}?tab=labeled&page=0&size=${annotationsPage.size}&progressFilter=${progressFilter ?: ''}&statusFilter=${statusFilter ?: ''}&search=${search ?: ''}|}">
+                Labeled
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link [[${activeTab} == 'in-progress' ? 'active' : '']]"
+               th:href="@{|/admin/datasets/${dataset.id}?tab=in-progress&page=0&size=${annotationsPage.size}&progressFilter=${progressFilter ?: ''}&statusFilter=${statusFilter ?: ''}&search=${search ?: ''}|}">
+                In-Progress
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link [[${activeTab} == 'unlabeled' ? 'active' : '']]"
+               th:href="@{|/admin/datasets/${dataset.id}?tab=unlabeled&page=0&size=${annotationsPage.size}&progressFilter=${progressFilter ?: ''}&statusFilter=${statusFilter ?: ''}&search=${search ?: ''}|}">
+                Unlabeled
+            </a>
+        </li>
+    </ul>
+
+    <!-- Annotations Table -->
+    <form class="mt-3" th:action="@{/admin/datasets/{id}/update-annotations(id=${dataset.id})}" method="post">
+        <input type="hidden" name="currentTab" th:value="${activeTab}"/>
+
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th>Text1</th>
+                    <th>Text2</th>
+                    <th>Status</th>
+                    <th>Annotator</th>
+                    <th>Progress</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:if="${annotations.isEmpty()}">
+                    <td colspan="5" class="text-center text-muted">No annotations found for this filter.</td>
+                </tr>
+                <tr th:each="a : ${annotations}">
+                    <td>
+                        <input type="hidden" name="annotationIds" th:value="${a.id}" />
+                        <span th:text="${a.text1}"></span>
+                    </td>
+                    <td th:text="${a.text2}"></td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge"
+                                  th:classappend="${a.status == 'labeled'} ? 'bg-success' :
+                                                  (${a.status == 'in-progress'} ? 'bg-warning text-dark' : 'bg-secondary')">
+                                <i th:classappend="${a.status == 'labeled'} ? 'bi bi-check-circle' :
+                                                  (${a.status == 'in-progress'} ? 'bi bi-hourglass-split' : 'bi bi-question-circle')"></i>
+                                <span th:text="${a.status}">status</span>
+                            </span>
+
+                            <select name="statuses" class="form-select form-select-sm"
+                                    th:classappend="${a.status == 'labeled'} ? 'bg-success text-white' :
+                                                    (${a.status == 'in-progress'} ? 'bg-warning text-dark' : 'bg-secondary text-white')">
+                                <option value="unlabeled" th:selected="${a.status == 'unlabeled'}">Unlabeled</option>
+                                <option value="in-progress" th:selected="${a.status == 'in-progress'}">In-Progress</option>
+                                <option value="labeled" th:selected="${a.status == 'labeled'}">Labeled</option>
+                            </select>
+                        </div>
+                    </td>
+                    <td>
+                        <select name="assignedUserIds" class="form-select form-select-sm">
+                            <option value="">-- None --</option>
+                            <option th:each="u : ${annotators}"
+                                    th:value="${u.id}"
+                                    th:text="${u.username}"
+                                    th:selected="${a.assignedTo != null and a.assignedTo.id == u.id}">
+                            </option>
+                        </select>
+                    </td>
+                    <td>
+                        <div class="progress" style="height: 18px;">
+                            <div class="progress-bar" role="progressbar"
+                                 th:style="'width:' + ${a.progressPercentage} + '%'"
+                                 th:text="${a.progressPercentage + '%'}"
+                                 th:classappend="${a.progressPercentage >= 100} ? ' bg-success' :
+                                                 (${a.progressPercentage >= 50} ? ' bg-info' : ' bg-warning')">
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <!-- Inside your pagination section -->
+<!-- Pagination -->
+<!-- Pagination -->
+<div th:if="${annotationsPage != null and annotationsPage.totalPages > 1}">
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" th:classappend="${annotationsPage.first} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{|/admin/datasets/${dataset.id}?tab=${activeTab}&page=${annotationsPage.number - 1}&size=${annotationsPage.size}&progressFilter=${progressFilter}&statusFilter=${statusFilter}&search=${search}|}">
+                    Previous
+                </a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link">
+                    Page <span th:text="${annotationsPage.number + 1}"></span> /
+                    <span th:text="${annotationsPage.totalPages}"></span>
+                </span>
+            </li>
+            <li class="page-item" th:classappend="${annotationsPage.last} ? 'disabled'">
+                <a class="page-link"
+                   th:href="@{|/admin/datasets/${dataset.id}?tab=${activeTab}&page=${annotationsPage.number + 1}&size=${annotationsPage.size}&progressFilter=${progressFilter}&statusFilter=${statusFilter}&search=${search}|}">
+                    Next
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+        
+
+        <!-- Save Button -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <button class="btn btn-success">Save All Changes</button>
+        </div>
+    </form>
+
+    <!-- Chart Header and Toggle -->
+<div class="mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">📊 Average Progress per Annotator</h5>
+        <select id="chartTypeSelect" class="form-select form-select-sm" style="width: 150px;">
+            <option value="bar" selected>Bar Chart</option>
+            <option value="pie">Pie Chart</option>
+        </select>
+    </div>
+
+    <!-- Responsive Canvas Container -->
+    <div style="height: 400px;">
+        <canvas id="progressChart"></canvas>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script th:inline="javascript">
+    const progressData = /*[[${avgProgressJson}]]*/ {};
+    const labels = Object.keys(progressData);
+    const data = Object.values(progressData);
+
+    let chartType = 'bar';
+    const ctx = document.getElementById('progressChart').getContext('2d');
+
+    const chartConfig = {
+        type: chartType,
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Progress (%)',
+                data: data,
+                backgroundColor: [
+                    'rgba(13, 110, 253, 0.7)',
+                    'rgba(40, 167, 69, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(220, 53, 69, 0.7)',
+                    'rgba(108, 117, 125, 0.7)',
+                    'rgba(23, 162, 184, 0.7)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: 'Average Progress per Annotator'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { stepSize: 10 }
+                }
+            }
+        }
+    };
+
+    let chartInstance = new Chart(ctx, chartConfig);
+
+    // Toggle chart type
+    document.getElementById('chartTypeSelect').addEventListener('change', function () {
+        const selectedType = this.value;
+        chartInstance.destroy();
+        chartConfig.type = selectedType;
+
+        if (selectedType === 'pie') {
+            chartConfig.options.scales = {};
+            chartConfig.options.plugins.title.text = 'Progress Distribution (Pie)';
+            chartConfig.data.datasets[0].label = 'Progress (%)';
+        } else {
+            chartConfig.options.scales = {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { stepSize: 10 }
+                }
+            };
+            chartConfig.options.plugins.title.text = 'Average Progress per Annotator';
+            chartConfig.data.datasets[0].label = 'Average Progress (%)';
+        }
+
+        chartInstance = new Chart(ctx, chartConfig);
+    });
+</script>
+    
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a th:href="@{/admin/datasets}" class="btn btn-secondary">Back to Datasets</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

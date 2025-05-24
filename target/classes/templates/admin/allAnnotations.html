@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>All Annotations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>All Annotations</h2>
+        <a href="/admin/annotations/export" class="btn btn-success">Export CSV</a>
+    </div>
+
+    <form method="get" action="#" class="mb-3">
+        <div class="input-group">
+            <input type="text" class="form-control" name="keyword" th:value="${keyword}" placeholder="Search text1 or text2...">
+            <button class="btn btn-primary" type="submit">Search</button>
+        </div>
+    </form>
+
+    <table class="table table-striped table-hover table-bordered">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Dataset</th>
+                <th>Text 1</th>
+                <th>Text 2</th>
+                <th>Assigned To</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr th:each="annotation : ${annotations}">
+            <td th:text="${annotation.id}">1</td>
+            <td th:text="${annotation.dataset.name}">DatasetName</td>
+            <td th:text="${annotation.text1}">Text1</td>
+            <td th:text="${annotation.text2}">Text2</td>
+            <td th:text="${annotation.assignedTo != null ? annotation.assignedTo.username : 'Unassigned'}"></td>
+            <td>
+                <form th:action="@{/admin/annotations/{id}/status(id=${annotation.id})}" method="post" class="d-flex">
+                    <select name="status" class="form-select form-select-sm me-2">
+                        <option value="unlabeled" th:selected="${annotation.status == 'unlabeled'}">Unlabeled</option>
+                        <option value="in-progress" th:selected="${annotation.status == 'in-progress'}">In Progress</option>
+                        <option value="labeled" th:selected="${annotation.status == 'labeled'}">Labeled</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-success" type="submit">✔</button>
+                </form>
+            </td>
+            <td>
+                <a th:href="@{/admin/annotations/{id}/edit(id=${annotation.id})}" class="btn btn-sm btn-warning me-1">Edit</a>
+                <a th:href="@{/admin/annotations/{id}/delete(id=${annotation.id})}" class="btn btn-sm btn-danger"
+                   onclick="return confirm('Are you sure you want to delete this annotation?')">Delete</a>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <nav th:if="${totalPages > 1}">
+        <ul class="pagination justify-content-center">
+            <li th:classappend="${currentPage == 0} ? 'disabled'" class="page-item">
+                <a th:href="@{/admin/annotations(page=${currentPage - 1}, keyword=${keyword})}" class="page-link">Previous</a>
+            </li>
+            <li class="page-item" th:each="i : ${#numbers.sequence(0, totalPages - 1)}"
+                th:classappend="${i == currentPage} ? 'active'">
+                <a th:href="@{/admin/annotations(page=${i}, keyword=${keyword})}" class="page-link" th:text="${i + 1}">1</a>
+            </li>
+            <li th:classappend="${currentPage == totalPages - 1} ? 'disabled'" class="page-item">
+                <a th:href="@{/admin/annotations(page=${currentPage + 1}, keyword=${keyword})}" class="page-link">Next</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+</body>
+</html>

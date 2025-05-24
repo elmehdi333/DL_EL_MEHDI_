@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>My Tasks</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div th:replace="~{fragments/annotator-navbar :: navbar}"></div>
+
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">My Assigned Tasks</h2>
+
+    <!-- Completion Count -->
+    <div class="alert alert-info text-center">
+        <strong>Completed:</strong>
+        <span th:text="${tasks.?[status == 'labeled'].size()} + ' / ' + ${tasks.size()}"></span>
+    </div>
+
+    <!-- Filters -->
+    <form method="get" th:action="@{/annotator/tasks}" class="row mb-4">
+        <input type="hidden" name="page" th:value="${currentPage}" />
+        <div class="col-md-3">
+            <label class="form-label">Progress Filter</label>
+            <select name="progressFilter" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">-- All --</option>
+                <option value="0-50" th:selected="${progressFilter == '0-50'}">0–50%</option>
+                <option value="51-99" th:selected="${progressFilter == '51-99'}">51–99%</option>
+                <option value="100" th:selected="${progressFilter == '100'}">100%</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Search</label>
+            <input type="text" name="search" class="form-control" th:value="${search}" placeholder="Search text1 or text2..." />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Sort By Progress</label>
+            <select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="asc" th:selected="${sort == 'asc'}">Lowest First</option>
+                <option value="desc" th:selected="${sort == 'desc'}">Highest First</option>
+            </select>
+        </div>
+        <div class="col-md-2 align-self-end">
+            <button type="submit" class="btn btn-primary w-100">Apply</button>
+        </div>
+    </form>
+
+    <!-- Tasks Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                <tr><th>Text1</th><th>Text2</th><th>Annotation</th><th>Status</th><th>Progress</th><th>Deadline</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                <tr th:if="${tasks.isEmpty()}">
+                    <td colspan="6" class="text-center text-muted">No tasks match the current filters.</td>
+                </tr>
+            <tr th:each="task : ${tasks}">
+    <form th:action="@{'/annotator/tasks/' + ${task.id}}" method="post">
+        <td th:text="${task.text1}">Text1</td>
+        <td th:text="${task.text2}">Text2</td>
+
+        <td>
+            <input type="text" name="value"
+                   th:value="${task.annotationValue}"
+                   class="form-control form-control-sm"
+                   th:disabled="${task.progressPercentage == 100}" />
+        </td>
+
+        <td>
+            <select name="status" class="form-select form-select-sm status-select"
+                    th:disabled="${task.progressPercentage == 100}"
+                    onchange="handleStatusChange(this)">
+                <option value="unlabeled" th:selected="${task.status == 'unlabeled'}">Unlabeled</option>
+                <option value="in-progress" th:selected="${task.status == 'in-progress'}">In-Progress</option>
+                <option value="labeled" th:selected="${task.status == 'labeled'}">Labeled</option>
+            </select>
+        </td>
+
+        <td>
+            <div class="input-group">
+                <input type="number" name="progressPercentage"
+                       min="0" max="100" step="1"
+                       class="form-control form-control-sm w-auto progress-input"
+                       th:value="${task.progressPercentage}"
+                       th:disabled="${task.progressPercentage == 100}" />
+                <span class="badge ms-2"
+                      th:text="${task.progressPercentage + '%'}"
+                      th:classappend="|
+                          ${task.progressPercentage == 100 ? 'bg-success' :
+                          (task.progressPercentage > 50 ? 'bg-warning text-dark' :
+                          'bg-warning')}
+                      |">
+                </span>
+            </div>
+        </td>
+ <!-- ✅ New Deadline Column -->
+        <td>
+            <span th:text="${task.dataset.deadline != null ? task.dataset.deadline : 'N/A'}"></span>
+        </td>
+        <td>
+            <button type="submit" class="btn btn-sm btn-success d-none submit-button">Save</button>
+            <a th:href="@{'/annotator/tasks/' + ${task.id}}" class="btn btn-sm btn-primary">Annotate</a>
+        </td>
+    </form>
+</tr>
+            
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div th:if="${annotationsPage != null}">
+        <nav>
+            <ul class="pagination justify-content-center">
+                <li class="page-item" th:classappend="${annotationsPage.first} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/annotator/tasks(page=${annotationsPage.number - 1}, progressFilter=${progressFilter}, search=${search}, sort=${sort})}">
+                        Previous
+                    </a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">
+                        Page <span th:text="${annotationsPage.number + 1}"></span> /
+                        <span th:text="${annotationsPage.totalPages}"></span>
+                    </span>
+                </li>
+                <li class="page-item" th:classappend="${annotationsPage.last} ? 'disabled'">
+                    <a class="page-link"
+                       th:href="@{/annotator/tasks(page=${annotationsPage.number + 1}, progressFilter=${progressFilter}, search=${search}, sort=${sort})}">
+                        Next
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mt-5">
+        <!-- Pie Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <canvas id="taskChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Line Chart -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <canvas id="completionTrend" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Scripts -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const total = /*[[${totalCount}]]*/ 0;
+        const completed = /*[[${completedCount}]]*/ 0;
+        const remaining = total - completed;
+        const lineLabels = /*[[${lineLabels}]]*/ [];
+        const lineData = /*[[${lineData}]]*/ [];
+
+        // Pie Chart
+        new Chart(document.getElementById('taskChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Remaining'],
+                datasets: [{
+                    data: [completed, remaining],
+                    backgroundColor: ['#28a745', '#ffc107'],
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'Annotation Completion Status' }
+                }
+            }
+        });
+
+        // Line Chart
+        new Chart(document.getElementById('completionTrend'), {
+            type: 'line',
+            data: {
+                labels: lineLabels,
+                datasets: [{
+                    label: 'Completions per Day',
+                    data: lineData,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Daily Completion Trend'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+        /*]]>*/
+    </script>
+</div>
+<script>
+    function handleStatusChange(selectElement) {
+        const form = selectElement.closest('form');
+        const status = selectElement.value;
+        const progressInput = form.querySelector('.progress-input');
+        const submitButton = form.querySelector('.submit-button');
+
+        if (status === 'labeled') {
+            progressInput.value = 100;
+            progressInput.disabled = true;
+        } else if (status === 'unlabeled') {
+            progressInput.value = 0;
+            progressInput.disabled = true;
+        } else {
+            progressInput.disabled = false;
+        }
+
+        // Auto-submit the form after setting the value
+        submitButton.click();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.status-select').forEach(select => {
+            handleStatusChange(select); // Apply logic on load
+        });
+    });
+</script>
+
+</body>
+</html>

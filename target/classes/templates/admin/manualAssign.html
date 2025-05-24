@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Manual Assignment</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container mt-4">
+    <h2>Manual Annotation Assignment</h2>
+    <p th:text="'Dataset: ' + ${dataset.name}"></p>
+
+    <form th:action="@{/admin/datasets/{id}/assign-manual(id=${dataset.id})}" method="post">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Text1</th>
+                    <th>Text2</th>
+                    <th>Assign To</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="annotation : ${unassignedAnnotations}">
+                    <td th:text="${annotation.text1}"></td>
+                    <td th:text="${annotation.text2}"></td>
+                    <td>
+                        <select class="form-select" th:name="${'annotation_' + annotation.id}">
+                            <option th:each="user : ${annotators}" 
+                                    th:value="${user.id}" 
+                                    th:text="${user.username}"></option>
+                        </select>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <button type="submit" class="btn btn-success">Save Assignments</button>
+        <a th:href="@{/admin/datasets/{id}(id=${dataset.id})}" class="btn btn-secondary">Back</a>
+    </form>
+</div>
+
+</body>
+</html>
